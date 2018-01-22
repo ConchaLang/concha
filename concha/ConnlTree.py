@@ -35,44 +35,47 @@ class ConnlTree(dict):
 
     def parse(self, connl_text):
         """ Updates inner dict structure out of a CoNNL text format. """
-        connl_text = connl_text.rstrip()  # Removing unwanted ending \n
+        connl_text = connl_text.rstrip()  # Removing unwanted ending '\n'.
         tokens = []
         root = None
-        words = connl_text.split('\n')  # A word per line
+        words = connl_text.split('\n')  # A word per line.
         for word in words:
-            values = word.split('\t')  # A CoNLL field per tab
-            key_val = zip(CONNL_KEYS, values)  # Key-Value joining
-            tokens.append(dict(key_val))
-            tokens[-1]['children'] = []
-            if tokens[-1]['HEAD'] == '0':
-                root = int(tokens[-1]['ID']) - 1
-        for token in tokens:
+            values = word.split('\t')  # A CoNLL field per tab.
+            token = dict(zip(CONNL_KEYS, values))  # New Token with Key-Value joining.
+            token['children'] = []  # Add an extra empty field for tree dependency reversing.
+            if token['HEAD'] == '0':  # Identify ROOT index.
+                root = int(token['ID']) - 1
+            tokens.append(token)  # Add k-v to the token list.
+        for token in tokens:  # Reverse the tree dependencies fulfilling the children field.
             head_index = int(token['HEAD']) - 1
             if head_index >= 0:
                 tokens[head_index]['children'].append(int(token['ID']) - 1)
-        tree = _connl_tree_fill(root, tokens)
+        tree = _connl_tree_fill(root, tokens)  # Recursive tree completion.
         self.update(tree)
         return self
 
     def matches(self, tree):
-        """ Returns if self is equal or similar to tree, which can be a pattern. """
+        """ Returns if self is equal or similar to a dict tree, which can be a pattern. """
+        tree_matches = True
         for key in tree:
             if key in self:
                 if key == 'FORM':
                     form_kind = tree['FORM'][0]
                     if form_kind == '*':  # Any.
-                        return True
+                        tree_matches &= True
                     elif form_kind == '~':  # Similar. TODO: search for embeddings
-                        return self['FORM'] == tree['FORM'][1:]
+                        tree_matches &= self['FORM'] == tree['FORM'][1:]
                     else:  # Equal.
-                        return self['FORM'] == tree['FORM']
+                        tree_matches &= self['FORM'] == tree['FORM']
                 else:
                     a = self[key]
                     b = tree[key]
-                    return a.matches(b)
-                    #  return (self[key]).matches(tree[key])
+                    tree_matches &= a.matches(b)
             else:
                 return False
+            if not tree_matches:
+                break
+        return tree_matches
 
     def __format__(self, format_spec=None):
         """ Does the string formatting of a ConnlTree object focusing on ordered 'FORM' fields. """
