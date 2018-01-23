@@ -51,6 +51,11 @@ class TestConnlTreeMethods(unittest.TestCase):
             self.tree['ROOT']['nsubj']['det']['FORM'] == 'mi'
         )
 
+    def test_parse_fail(self):
+        with self.assertRaises(ConnlTree.ParseError):
+            bad_tree = ConnlTree.ConnlTree()
+            bad_tree.parse('1	mi	_	DET	_	Number=Sing|Per')
+
     def test_match(self):
         self.assertTrue(
             self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': 'me'}}}) and

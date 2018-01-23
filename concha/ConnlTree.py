@@ -4,6 +4,19 @@ CONNL_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'HEAD', 'DEP
 SUBTREE_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'DEPS', 'MISC']
 
 
+class ParseError(Exception):
+    """Exception raised for errors in the parsing.
+
+    Attributes:
+        text -- input expression in which the parsing error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, text, message):
+        self.text = text
+        self.message = message
+
+
 def _connl_tree_fill(index, tokens):
     """ Recursively fulfill deprel relationships. """
     deprel = tokens[index]['DEPREL']
@@ -35,22 +48,26 @@ class ConnlTree(dict):
 
     def parse(self, connl_text):
         """ Updates inner dict structure out of a CoNNL text format. """
-        connl_text = connl_text.rstrip()  # Removing unwanted ending '\n'.
-        tokens = []
-        root = None
-        words = connl_text.split('\n')  # A word per line.
-        for word in words:
-            values = word.split('\t')  # A CoNLL field per tab.
-            token = dict(zip(CONNL_KEYS, values))  # New Token with Key-Value joining.
-            token['children'] = []  # Add an extra empty field for tree dependency reversing.
-            if token['HEAD'] == '0':  # Identify ROOT index.
-                root = int(token['ID']) - 1
-            tokens.append(token)  # Add k-v to the token list.
-        for token in tokens:  # Reverse the tree dependencies fulfilling the children field.
-            head_index = int(token['HEAD']) - 1
-            if head_index >= 0:
-                tokens[head_index]['children'].append(int(token['ID']) - 1)
-        tree = _connl_tree_fill(root, tokens)  # Recursive tree completion.
+        tree = None
+        try:
+            connl_text = connl_text.rstrip()  # Removing unwanted ending '\n'.
+            tokens = []
+            root = None
+            words = connl_text.split('\n')  # A word per line.
+            for word in words:
+                values = word.split('\t')  # A CoNLL field per tab.
+                token = dict(zip(CONNL_KEYS, values))  # New Token with Key-Value joining.
+                token['children'] = []  # Add an extra empty field for tree dependency reversing.
+                if token['HEAD'] == '0':  # Identify ROOT index.
+                    root = int(token['ID']) - 1
+                tokens.append(token)  # Add k-v to the token list.
+            for token in tokens:  # Reverse the tree dependencies fulfilling the children field.
+                head_index = int(token['HEAD']) - 1
+                if head_index >= 0:
+                    tokens[head_index]['children'].append(int(token['ID']) - 1)
+            tree = _connl_tree_fill(root, tokens)  # Recursive tree completion.
+        except Exception:
+            raise ParseError(connl_text, 'The text was not CoNNL compliant.' )
         self.update(tree)
         return self
 
