@@ -1,4 +1,24 @@
 # -*- coding: utf-8 -*-
+# Copyright 2018 Pascual de Juan All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+__version__ = '1.0'
+__all__ = [
+    'ParseError', 'ConnlTree'
+]
+
+__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 
 CONNL_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'HEAD', 'DEPREL', 'DEPS', 'MISC']
 SUBTREE_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'DEPS', 'MISC']
@@ -18,7 +38,7 @@ class ParseError(Exception):
 
 
 def _connl_tree_fill(index, tokens):
-    """ Recursively fulfill deprel relationships. """
+    """Recursively fulfill DEPREL relationships."""
     deprel = tokens[index]['DEPREL']
     subtree = ConnlTree()
     for i in SUBTREE_KEYS:
@@ -31,7 +51,7 @@ def _connl_tree_fill(index, tokens):
 
 
 def _connl_format(tree):
-    """ Returns a dict with all the dependant FORMs indexed by ID. """
+    """Return a dict with all the dependant FORMs indexed by ID."""
     result = {tree['ID']: tree['FORM']}
     for key in tree:
         if key not in SUBTREE_KEYS:
@@ -40,15 +60,14 @@ def _connl_format(tree):
 
 
 class ConnlTree(dict):
-    """ Handles texts in nested tokens according to separators """
+    """Handle texts in nested tokens according to DEPREL relationships."""
 
 #    def __init__(self, other=None, *arg, **kw):
-#        """ Creates a dict+list structure out of a CoNNL text format. """
+#        """Create a dict+list structure out of a CoNNL text format."""
 #        super(ConnlTree, self).__init__(*arg, **kw)
 
     def parse(self, connl_text):
-        """ Updates inner dict structure out of a CoNNL text format. """
-        tree = None
+        """Update inner dict structure out of a CoNNL text format."""
         try:
             connl_text = connl_text.rstrip()  # Removing unwanted ending '\n'.
             tokens = []
@@ -66,13 +85,13 @@ class ConnlTree(dict):
                 if head_index >= 0:
                     tokens[head_index]['children'].append(int(token['ID']) - 1)
             tree = _connl_tree_fill(root, tokens)  # Recursive tree completion.
+            self.update(tree)
         except Exception:
-            raise ParseError(connl_text, 'The text was not CoNNL compliant.' )
-        self.update(tree)
+            raise ParseError(connl_text, 'The text was not CoNNL compliant.')
         return self
 
     def matches(self, tree):
-        """ Returns if self is equal or similar to a dict tree, which can be a pattern. """
+        """Return if self is equal or similar to a dict tree, which can be a pattern."""
         tree_matches = True
         for key in tree:
             if key in self:
@@ -95,6 +114,6 @@ class ConnlTree(dict):
         return tree_matches
 
     def __format__(self, format_spec=None):
-        """ Does the string formatting of a ConnlTree object focusing on ordered 'FORM' fields. """
+        """Format a ConnlTree object for string.format() focusing on ordered 'FORM' fields."""
         forms = _connl_format(self)
         return ' '.join(str(forms[key]) for key in sorted(forms))

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-import ConnlTree
+import connl_tree
 
 a_tree_txt = '\
 1	mi	_	DET	_	Number=Sing|Person=1|Poss=Yes|PronType=Prs|fPOS=DET++	2	det	_	_\n\
@@ -37,10 +37,11 @@ a_tree = {
     }
 }
 
-class TestConnlTreeMethods(unittest.TestCase):
+
+class ConnlTreeTest(unittest.TestCase):
 
     def setUp(self):
-        self.tree = ConnlTree.ConnlTree()
+        self.tree = connl_tree.ConnlTree()
         self.tree.parse(a_tree_txt)
 
     def test_parse(self):
@@ -52,8 +53,8 @@ class TestConnlTreeMethods(unittest.TestCase):
         )
 
     def test_parse_fail(self):
-        with self.assertRaises(ConnlTree.ParseError):
-            bad_tree = ConnlTree.ConnlTree()
+        with self.assertRaises(connl_tree.ParseError):
+            bad_tree = connl_tree.ConnlTree()
             bad_tree.parse('1	mi	_	DET	_	Number=Sing|Per')
 
     def test_match(self):
@@ -63,7 +64,7 @@ class TestConnlTreeMethods(unittest.TestCase):
             self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': '*cosa'}}})
         )
 
-    def test_no_match(self):
+    def test_match_fail(self):
         self.assertFalse(
             self.tree.matches({'ROOT': {'FORM': 'mima', 'dobj': {'FORM': 'cosa'}}}) or
             self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': 'cosa'}}}) or
