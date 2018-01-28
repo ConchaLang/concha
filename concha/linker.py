@@ -13,12 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
     'link'
 ]
-
-__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 
 from random import choice
 from collections import namedtuple

@@ -13,12 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
     'TrickError', 'append_trick', 'expand_trick', 'match_tricks', 'default_domain'
 ]
-
-__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 
 import requests
 import json

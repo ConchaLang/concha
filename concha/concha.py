@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+# Copyright 2018 Pascual de Juan All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
+__version__ = '1.0'
+
 import os
 import subprocess
 import datetime
@@ -18,7 +35,7 @@ REPLS = ('.', ' . '), (',', ' , '), (';', ' ; '), (':', ' : '), ('¿', ' ¿ '), 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # No TF optimization warnings
 
 
-def _parse(text):
+def parse(text):
     """Do a external parsing returning it in a CoNNL tree. It can evolve to other invocation ways"""
     text = reduce(lambda a, kv: a.replace(*kv), REPLS, text)  # Tokenize punctuation symbols
     shell_cmd = 'echo ' + text + ' | ./parse.sh ../lang_models/Spanish'
@@ -83,7 +100,7 @@ def documents_methods():
             'date': str(datetime.datetime.now()).split('.')[0],
             'text': request.json['text']
         })
-        doc = _parse(request.json['text'])
+        doc = parse(request.json['text'])
         treated_doc = link(doc, tricks)
         response = jsonify({"id": id_, 'answer_text': treated_doc.treat, 'request': doc, 'tricks': treated_doc.tricks})
         response.status_code = treated_doc.status
