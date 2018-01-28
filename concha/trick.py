@@ -16,7 +16,7 @@
 __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
-    'TrickError', 'append_trick', 'expand_trick', 'match_tricks', 'default_domain'
+    'TrickError', 'append_trick', 'expand_trick', 'match_tricks', 'default_domain', 'error_domain'
 ]
 
 import requests
@@ -37,9 +37,14 @@ class TrickError(Exception):
 
 
 default_domain = []
+error_domain = []
 
 
 def append_trick(trick, trick_domain=default_domain):
+    if 'when' in trick:
+        if 'method' in trick['when']:
+            if trick['when']['method'] == 'ERROR':
+                trick_domain = error_domain
     trick_domain.append(trick)
 
 

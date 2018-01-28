@@ -17,32 +17,16 @@ __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 
 import os
-import subprocess
 import datetime
 from trick import append_trick
-from connl_tree import ConnlTree
-from linker import link
-from functools import reduce
-from flask import Flask
-from flask import request, jsonify, abort
-
-app = Flask(__name__)
-tricks = []
-documents = []
-REPLS = ('.', ' . '), (',', ' , '), (';', ' ; '), (':', ' : '), ('¿', ' ¿ '), ('?', ' ? '), ('¡', ' ¡ '), ('!', ' ! ')
+from kernel import parse, link
+from flask import Flask, request, jsonify, abort
 
 # This is because of the annoying warnings of the standard CPU TF distribution
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # No TF optimization warnings
-
-
-def parse(text):
-    """Do a external parsing returning it in a CoNNL tree. It can evolve to other invocation ways"""
-    text = reduce(lambda a, kv: a.replace(*kv), REPLS, text)  # Tokenize punctuation symbols
-    shell_cmd = 'echo ' + text + ' | ./parse.sh ../lang_models/Spanish'
-    connl_bin_output = subprocess.check_output([shell_cmd], shell=True)
-    connl_txt = connl_bin_output.decode('utf-8')  # From Binary to String
-    result = ConnlTree()
-    return result.parse(connl_txt)
+app = Flask(__name__)
+tricks = []
+documents = []
 
 
 @app.route('/v1/tricks', methods=['POST', 'GET'])
@@ -85,7 +69,7 @@ def documents_analyze_syntax():
     """Return just a text parsing. No document handling."""
     if not request.json:
         abort(400)
-    return jsonify(_parse(request.json['text']))
+    return jsonify(parse(request.json['text']))
 
 
 @app.route('/v1/documents', methods=['POST', 'GET'])
