@@ -19,8 +19,8 @@ __all__ = [
     'TrickError', 'append_trick', 'expand_trick', 'match_tricks', 'default_domain', 'error_domain'
 ]
 
-import requests
 import json
+from connl_tree import text_parse
 
 
 class TrickError(Exception):
@@ -51,6 +51,7 @@ def append_trick(trick, trick_domain=default_domain):
 def expand_trick(trick, doc):
     """Substitute the 'then' part of a trick according to a document."""
     context = {'d': doc}
+    status_code = None
     if 'when' in trick:
         if trick['when']['method'] == 'POST':
             uri = trick['when']['uri'].format_map(context)
@@ -62,6 +63,10 @@ def expand_trick(trick, doc):
             response = requests.get(url=uri)
             status_code = '{}'.format(response.status_code)
             context.update({'r': {'body': json.loads(response.text)}})
+        elif trick['when']['method'] == 'TREAT':
+            uri = trick['when']['uri'].format_map(context)
+            doc = text_parse(uri)
+            link(doc, tricks)  # TODO *****************
         else:
             status_code = '400'  # TODO do other methods
     else:
@@ -75,9 +80,9 @@ def expand_trick(trick, doc):
 
 
 def match_tricks(tree, trick_domain=default_domain):
-    """Identify which tricks matches with provided CoNNL tree document."""
+    """Identify th eindexes of which tricks matches with provided CoNNL tree document."""
     candidates = []
-    for trick in trick_domain:
+    for i, trick in enumerate(trick_domain):
         if tree.matches(trick['given']):
-            candidates.append(trick)
+            candidates.append(i)
     return candidates

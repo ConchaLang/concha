@@ -10,32 +10,12 @@ a_tree_txt = '\
 \n\
 '
 
-a_tree = {
-    "ROOT": {
-        "FEATS": "Mood=Ind|Number=Sing|Person=1|Tense=Past|VerbForm=Fin|fPOS=VERB++",
-        "FORM": "mima",
-        "ID": "4",
-        "UPOSTAG": "VERB",
-        "iobj": {
-            "FEATS": "Case=Acc,Dat|Number=Sing|Person=1|PrepCase=Npr|PronType=Prs|Reflex=Yes|fPOS=PRON++",
-            "FORM": "me",
-            "ID": "3",
-            "UPOSTAG": "PRON"
-        },
-        "nsubj": {
-            "FEATS": "Gender=Fem|Number=Sing|fPOS=NOUN++",
-            "FORM": "mamá",
-            "ID": "2",
-            "UPOSTAG": "NOUN",
-            "det": {
-                "FEATS": "Number=Sing|Person=1|Poss=Yes|PronType=Prs|fPOS=DET++",
-                "FORM": "mi",
-                "ID": "1",
-                "UPOSTAG": "DET"
-            }
-        }
-    }
-}
+b_tree_txt = '\
+1	la	_	DE	_	Definite=Def|Gender=Fem|Number=Sing|PronType=Art|fPOS=DET++	2	det	_	_\n\
+2	señora	_	NOUN	_	Gender=Fem|Number=Sing|fPOS=NOUN++	0	ROOT	_	_\n\
+3	Concha	_	PROPN	_	fPOS=PROPN++	2	appos	_	_\n\
+\n\
+'
 
 
 class ConnlTreeTest(unittest.TestCase):
@@ -56,6 +36,21 @@ class ConnlTreeTest(unittest.TestCase):
         with self.assertRaises(connl_tree.ParseError):
             bad_tree = connl_tree.ConnlTree()
             bad_tree.parse('1	mi	_	DET	_	Number=Sing|Per')
+
+    def test_deep_replacement(self):
+        b_tree = connl_tree.ConnlTree()
+        b_tree.parse(b_tree_txt)
+        threshold = self.tree['ROOT']['nsubj'].max()
+        threshold += 1
+        delta = b_tree['ROOT'].len()
+        b = self.tree['ROOT']['nsubj'].len()
+        delta -= b
+        replaced_tree = self.tree.deep_replacement(self.tree['ROOT'], 'nsubj', b_tree, delta, threshold)
+        self.assertTrue(
+            replaced_tree['ROOT']['nsubj']['appos']['FORM'] == 'Concha' and
+            replaced_tree['ROOT']['nsubj']['appos']['ID'] == '3' and
+            replaced_tree['ROOT']['ID'] == '5'
+        )
 
     def test_match(self):
         self.assertTrue(

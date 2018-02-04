@@ -18,8 +18,9 @@ __version__ = '1.0'
 
 import os
 import datetime
+from connl_tree import text_parse, ConnlTree
 from trick import append_trick
-from kernel import parse, link
+from kernel import linker, Artifact
 from flask import Flask, request, jsonify, abort
 
 # This is because of the annoying warnings of the standard CPU TF distribution
@@ -69,7 +70,7 @@ def documents_analyze_syntax():
     """Return just a text parsing. No document handling."""
     if not request.json:
         abort(400)
-    return jsonify(parse(request.json['text']))
+    return jsonify(text_parse(request.json['text']))
 
 
 @app.route('/v1/documents', methods=['POST', 'GET'])
@@ -84,10 +85,15 @@ def documents_methods():
             'date': str(datetime.datetime.now()).split('.')[0],
             'text': request.json['text']
         })
-        doc = parse(request.json['text'])
-        treated_doc = link(doc, tricks)
-        response = jsonify({"id": id_, 'answer_text': treated_doc.treat, 'request': doc, 'tricks': treated_doc.tricks})
-        response.status_code = treated_doc.status
+        doc = text_parse(request.json['text'])
+        artifact = linker(doc, tricks)
+        response = jsonify({
+            'id': id_,
+            'answer_text': '{ROOT}'.format_map(artifact.doc),  # TODO error handling
+            'request': doc,
+            'tricks': artifact.used_tricks
+        })
+        response.status_code = 201 if artifact.status == '200' else int(artifact.status)
     elif request.method == 'GET':
         response = jsonify(documents)
         response.status_code = 200

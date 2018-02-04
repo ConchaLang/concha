@@ -11,33 +11,6 @@ a_tree_txt = '\
 \n\
 '
 
-a_doc = {
-    "ROOT": {
-        "FEATS": "Mood=Ind|Number=Sing|Person=1|Tense=Past|VerbForm=Fin|fPOS=VERB++",
-        "FORM": "mima",
-        "ID": "4",
-        "UPOSTAG": "VERB",
-        "iobj": {
-            "FEATS": "Case=Acc,Dat|Number=Sing|Person=1|PrepCase=Npr|PronType=Prs|Reflex=Yes|fPOS=PRON++",
-            "FORM": "me",
-            "ID": "3",
-            "UPOSTAG": "PRON"
-        },
-        "nsubj": {
-            "FEATS": "Gender=Fem|Number=Sing|fPOS=NOUN++",
-            "FORM": "mamá",
-            "ID": "2",
-            "UPOSTAG": "NOUN",
-            "det": {
-                "FEATS": "Number=Sing|Person=1|Poss=Yes|PronType=Prs|fPOS=DET++",
-                "FORM": "mi",
-                "ID": "1",
-                "UPOSTAG": "DET"
-            }
-        }
-    }
-}
-
 a_trick = {
     "given": {
         "ROOT": {
@@ -94,11 +67,13 @@ class TrickTest(unittest.TestCase):
     def test_match_tricks(self):
         domain = []
         append_trick(a_trick, domain)
+        append_trick(b_trick, domain)
         tree = ConnlTree()
         tree.parse(a_tree_txt)
         matched_tricks = match_tricks(tree, domain)
         self.assertTrue(
-            matched_tricks[0]['given']['ROOT']['iobj']['FORM'] == '*alguien'
+            len(matched_tricks) == 1 and
+            domain[0]['given']['ROOT']['iobj']['FORM'] == '*alguien'
         )
 
 

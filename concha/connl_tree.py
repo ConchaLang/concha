@@ -16,11 +16,30 @@
 __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
-    'ParseError', 'ConnlTree'
+    'Branch', 'sub_tree', 'ParseError', 'ConnlTree', 'text_parse'
 ]
 
-CONNL_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'HEAD', 'DEPREL', 'DEPS', 'MISC']
+import subprocess
+from functools import reduce
+from collections import namedtuple
+
+REPLS = ('.', ' . '), (',', ' , '), (';', ' ; '), (':', ' : '), \
+        ('¿', ' ¿ '), ('?', ' ? '), ('¡', ' ¡ '), ('!', ' ! ')
+CONNL_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG',
+              'FEATS', 'HEAD', 'DEPREL', 'DEPS', 'MISC']
 SUBTREE_KEYS = ['ID', 'FORM', 'LEMMA', 'UPOSTAG', 'XPOSTAG', 'FEATS', 'DEPS', 'MISC']
+
+Branch = namedtuple('Branch', ['tree', 'parent', 'key'])
+
+
+def sub_tree(tree, path):
+    """Traverse a dict tree according to format() style providing the parent and the branch key."""
+    key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
+    parent, key = (None,)*2
+    for key in key_list:
+        parent = tree
+        tree = tree[key]
+    return Branch(tree=tree, parent=parent, key=key)
 
 
 class ParseError(Exception):
@@ -89,6 +108,78 @@ class ConnlTree(dict):
             raise ParseError(connl_text, 'The text was not CoNNL compliant.')
         return self
 
+    def len(self):
+        """Count how many nodes in a ConnlTree."""
+        count = 1
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                count += value.len()
+        return count
+
+    def min(self):
+        """Find the minimum ID a (sub)ConnlTree."""
+        n = int(self['ID'])
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                n = min(n, value.min())
+        return n
+
+    def max(self):
+        """Find the minimum ID a (sub)ConnlTree."""
+        n = int(self['ID'])
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                n = max(n, value.max())
+        return n
+
+    def renumber(self, delta, threshold=0):
+        """           threshold = max(source[grp]) + 1
+        source  [grp] |        --> replacement
+        1,2,3,4,(5,6),7,8,9,10 --> (1,2,3)
+        0,0,0,0,(   ),1,1,1, 1 --> (4,4,4)
+                      |             |
+                      |             delta = min(source[grp]) - 1
+                      delta = len(replacement) - len(source[grp])
+        """
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                value.renumber(delta, threshold)
+            elif key == 'ID':
+                id_ = int(value)
+                if id_ >= threshold:
+                    self.update({key: str(id_ + delta)})
+
+    def deepcopy(self):
+        """Creates a deep copy of self."""
+        branch = ConnlTree()
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                branch.update(ConnlTree({key: value.deepcopy()}))
+            else:
+                branch.update(ConnlTree({key: value}))
+        return branch
+
+    def deep_replacement(self, source_parent, source_key, replacement, delta, threshold):
+        """Creates a deep copy of self replacing source branch."""
+        branch = ConnlTree()
+        for key, value in self.items():
+            if isinstance(value, ConnlTree):
+                if self == source_parent and key == source_key:
+                    branch.update(ConnlTree({source_key: replacement}))
+                else:
+                    branch.update(ConnlTree({key: value.deep_replacement(
+                        source_parent, source_key, replacement, delta, threshold
+                    )}))
+            elif key == 'ID':
+                id_ = int(value)
+                if id_ >= threshold:
+                    branch.update({key: str(id_ + delta)})
+                else:
+                    branch.update({key: value})
+            else:
+                branch.update({key: value})
+        return branch
+
     def matches(self, tree):
         """Return if self is equal or similar to a dict tree, which can be a pattern."""
         tree_matches = True
@@ -116,3 +207,13 @@ class ConnlTree(dict):
         """Format a ConnlTree object for string.format() focusing on ordered 'FORM' fields."""
         forms = _connl_format(self)
         return ' '.join(str(forms[key]) for key in sorted(forms))
+
+
+def text_parse(text):
+    """Do a external parsing returning it in a CoNNL tree. It can evolve to other invocation ways"""
+    text = reduce(lambda a, kv: a.replace(*kv), REPLS, text)  # Tokenize punctuation symbols
+    shell_cmd = 'echo ' + text + ' | ./parse.sh ../lang_models/Spanish'
+    connl_bin_output = subprocess.check_output([shell_cmd], shell=True)
+    connl_txt = connl_bin_output.decode('utf-8')  # From Binary to String
+    result = ConnlTree()
+    return result.parse(connl_txt)
