@@ -40,12 +40,9 @@ class ConnlTreeTest(unittest.TestCase):
     def test_deep_replacement(self):
         b_tree = connl_tree.ConnlTree()
         b_tree.parse(b_tree_txt)
-        threshold = self.tree['ROOT']['nsubj'].max()
-        threshold += 1
-        delta = b_tree['ROOT'].len()
-        b = self.tree['ROOT']['nsubj'].len()
-        delta -= b
-        replaced_tree = self.tree.deep_replacement(self.tree['ROOT'], 'nsubj', b_tree, delta, threshold)
+        threshold = self.tree['ROOT']['nsubj'].max() + 1
+        delta = b_tree['ROOT'].len() - self.tree['ROOT']['nsubj'].len()
+        replaced_tree = self.tree.deep_replacement(self.tree['ROOT'], 'nsubj', b_tree['ROOT'], delta, threshold)
         self.assertTrue(
             replaced_tree['ROOT']['nsubj']['appos']['FORM'] == 'Concha' and
             replaced_tree['ROOT']['nsubj']['appos']['ID'] == '3' and

@@ -29,6 +29,22 @@ from connl_tree import sub_tree, text_parse, ConnlTree
 Artifact = namedtuple('Artifact', ['doc', 'used_tricks', 'status'])
 
 
+def resolve_artifact(artifacts):
+    """Decide the most appropriate among the possible artifacts."""
+    choices = []
+    max_complexity = max([len(x.used_tricks) for x in artifacts])
+    for artifact in artifacts:
+        if len(artifact.used_tricks) == max_complexity:
+            if not choices:
+                choices.append(artifact)
+            elif artifact.status < choices[0].status:
+                choices.clear()
+                choices.append(artifact)
+            elif artifact.status == choices[0].status:
+                choices.append(artifact)
+    return choice(choices)
+
+
 def linker(source, tricks):
     """Return an Artifact according to a given source doc and trick domain."""
     artifacts = []
@@ -45,9 +61,8 @@ def linker(source, tricks):
         for trick in error_domain:
             artifacts.append(compiler(source, trick, error_domain))
     else:  # Fallback in English
-        artifacts.append(Artifact(doc={'ROOT': {'FORM': 'NoTrick'}}, used_tricks=[], status='404'))
-    chosen_artifact = choice(artifacts)  # TODO find out a better criteria *****************
-    return chosen_artifact
+        artifacts.append(Artifact(doc={'ROOT': {'FORM': 'NoTrick'}}, used_tricks=[], status='600'))  # Not a HHTP code
+    return resolve_artifact(artifacts)
 
 
 def compiler(source, trick_idx, tricks):
@@ -62,17 +77,23 @@ def compiler(source, trick_idx, tricks):
             uri = trick['when']['uri'].format_map(context)
             response = requests.post(url=uri, json=trick['when']['body'])
             r_status = str(response.status_code)
-            context.update({'r': {'body': json.loads(response.text)}})
+            if 'json' in response.headers['content-type']:
+                context.update({'r': {'body': json.loads(response.text)}})
+            else:
+                context.update({'r': {'body': ''}})
         elif method == 'GET':
             uri = trick['when']['uri'].format_map(context)
             response = requests.get(url=uri)
             r_status = str(response.status_code)
-            context.update({'r': {'body': json.loads(response.text)}})
+            if 'json' in response.headers['content-type']:
+                context.update({'r': {'body': json.loads(response.text)}})
+            else:
+                context.update({'r': {'body': ''}})
         elif method == 'TREAT':
             source_branch = sub_tree(context, trick['when']['uri'])
             sub_target = '{{{}}}'.format(source_branch.key)
             sub_doc = text_parse(sub_target.format_map(source_branch.parent))
-            sub_artifact = linker(sub_doc, tricks)
+            sub_artifact = linker(sub_doc, tricks)  # First pass, only the sub_doc.
             r_status = sub_artifact.status
             if r_status in trick['then']:
                 context.update({'r': sub_artifact.doc})
@@ -84,25 +105,25 @@ def compiler(source, trick_idx, tricks):
                     source_branch.parent, source_branch.key,
                     replacement_branch.tree, delta, threshold
                 )
-                treated_artifact = linker(treated_source, tricks)
+                treated_artifact = linker(treated_source, tricks)  # Second pass, sub_doc response expanded in source
                 return Artifact(
                     doc=treated_artifact.doc,
-                    used_tricks=[trick_idx] + treated_artifact.used_tricks,
+                    used_tricks=[trick_idx] + sub_artifact.used_tricks + treated_artifact.used_tricks,
                     status=treated_artifact.status
                 )
-            else:  # reply error in sub_doc with a not found r_status
+            else:  # reply error in sub_doc with a not implemented r_status
                 return Artifact(
                     doc=sub_doc,
                     used_tricks=[trick_idx] + sub_artifact.used_tricks,
-                    status='404'
+                    status='501'
                 )
         else:
-            r_status = '400'  # TODO do other methods
+            r_status = '501'  # TODO do other methods
     else:  # No 'when' in trick means "do the 'then' part"
         r_status = '200'
     if r_status in trick['then']:
         then = trick['then'][r_status]
         r_doc = text_parse(then.format_map(context))
     else:
-        r_status = '400'
+        r_status = '501'
     return Artifact(doc=r_doc, used_tricks=[trick_idx], status=r_status)

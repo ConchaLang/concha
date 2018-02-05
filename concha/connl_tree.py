@@ -70,7 +70,7 @@ def _connl_tree_fill(index, tokens):
 
 def _connl_format(tree):
     """Return a dict with all the dependant FORMs indexed by ID."""
-    result = {tree['ID']: tree['FORM']}
+    result = {int(tree['ID']): tree['FORM']}
     for key in tree:
         if key not in SUBTREE_KEYS:
             result.update(_connl_format(tree[key]))
