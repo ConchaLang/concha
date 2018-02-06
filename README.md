@@ -64,8 +64,32 @@ an autonomous way in this case)
 
 ## Installation
 Well, this is pretty simple. Just clone the project parallel
-to TensorFlow/SyntaxNet and run `concha.py` in python3.
+to TensorFlow/SyntaxNet and run `concha.py` in python3 from 
+`concha/concha` execution directory.
 
+1. Have `tensorflow/models/research/syntaxnet` installed on 
+whatever X directory.
+2. Follow the SyntaxNet installation instructions detailed 
+[here](https://github.com/tensorflow/models/tree/master/research/syntaxnet#installation) 
+3. There should be some directory structure like this: 
+`X/models/research/syntaxnet/syntaxnet`.
+4. Clone this very repository over X directory.
+5. There should be some directory structure like this:
+`X/concha/concha` and you are done.
+
+### Credits
+* Files `parse.sh` and `context.pbtx` on `concha/concha` directory 
+are part of `universal-parsey` as mentioned in SyntaxNet documentation, 
+but they are not included in the official repository. You can find them in `mldb.ai` organization
+at [this repo](https://github.com/mldbai/tensorflow-models/tree/master/syntaxnet/syntaxnet/models/parsey_universal)
+(it should be located at models/research/syntaxnet/syntaxnet/models/parsey-universal/)
+* Laguage models located at `concha/lang_models` are referenced 
+in the SyntaxNet [documentation](https://github.com/tensorflow/models/blob/master/research/syntaxnet/g3doc/universal.md), 
+but they claim you must download them. Given they are exposed under 
+the same Syntaxnet License, I've included them here for your convenience. 
+
+## Execution
+TBD curl examples
 
 ## Final goals
 When we, humans, teach each other (and I'm not talking about 
