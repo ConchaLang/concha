@@ -62,6 +62,11 @@ common shell script it only does:
 an autonomous way in this case)
 * Process execution return value (following HTTP coding).
 
+## Installation
+Well, this is pretty simple. Just clone the project parallel
+to TensorFlow/SyntaxNet and run `concha.py` in python3.
+
+
 ## Final goals
 When we, humans, teach each other (and I'm not talking about 
 learning, but teaching), we use tonnes of natural language 
