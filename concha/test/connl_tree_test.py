@@ -25,16 +25,14 @@ class ConnlTreeTest(unittest.TestCase):
         self.tree.parse(a_tree_txt)
 
     def test_parse(self):
-        self.assertTrue(
-            self.tree['ROOT']['FORM'] == 'mima' and
-            self.tree['ROOT']['iobj']['FORM'] == 'me' and
-            self.tree['ROOT']['nsubj']['FORM'] == 'mamá' and
-            self.tree['ROOT']['nsubj']['det']['FORM'] == 'mi'
-        )
+        self.assertTrue(self.tree['ROOT']['FORM'] == 'mima')
+        self.assertTrue(self.tree['ROOT']['iobj']['FORM'] == 'me')
+        self.assertTrue(self.tree['ROOT']['nsubj']['FORM'] == 'mamá')
+        self.assertTrue(self.tree['ROOT']['nsubj']['det']['FORM'] == 'mi')
 
     def test_parse_fail(self):
+        bad_tree = connl_tree.ConnlTree()
         with self.assertRaises(connl_tree.ParseError):
-            bad_tree = connl_tree.ConnlTree()
             bad_tree.parse('1	mi	_	DET	_	Number=Sing|Per')
 
     def test_deep_replacement(self):
@@ -43,18 +41,14 @@ class ConnlTreeTest(unittest.TestCase):
         threshold = self.tree['ROOT']['nsubj'].max() + 1
         delta = b_tree['ROOT'].len() - self.tree['ROOT']['nsubj'].len()
         replaced_tree = self.tree.deep_replacement(self.tree['ROOT'], 'nsubj', b_tree['ROOT'], delta, threshold)
-        self.assertTrue(
-            replaced_tree['ROOT']['nsubj']['appos']['FORM'] == 'Concha' and
-            replaced_tree['ROOT']['nsubj']['appos']['ID'] == '3' and
-            replaced_tree['ROOT']['ID'] == '5'
-        )
+        self.assertTrue(replaced_tree['ROOT']['nsubj']['appos']['FORM'] == 'Concha')
+        self.assertTrue(replaced_tree['ROOT']['nsubj']['appos']['ID'] == '3')
+        self.assertTrue(replaced_tree['ROOT']['ID'] == '5')
 
     def test_match(self):
-        self.assertTrue(
-            self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': 'me'}}}) and
-            self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': '~me'}}}) and
-            self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': '*cosa'}}})
-        )
+        self.assertTrue(self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': 'me'}}}))
+        self.assertTrue(self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': '~me'}}}))
+        self.assertTrue(self.tree.matches({'ROOT': {'FORM': 'mima', 'iobj': {'FORM': '*cosa'}}}))
 
     def test_match_fail(self):
         self.assertFalse(
@@ -65,9 +59,7 @@ class ConnlTreeTest(unittest.TestCase):
 
     def test_format(self):
         txt = '{ROOT[nsubj]} es muy mimosa'.format_map(self.tree)
-        self.assertTrue(
-            txt == 'mi mamá es muy mimosa'
-        )
+        self.assertTrue(txt == 'mi mamá es muy mimosa')
 
 
 if __name__ == '__main__':
