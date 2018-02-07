@@ -56,7 +56,7 @@ every call), so response times can go far beyond 10 seconds.
 Comparison to Shellscript
 It is not a programming language yet. If we compare it to a
 common shell script it only does:
-* Prompt.
+* Command acceptance (HTTP endpoint acts as a prompt).
 * Process execution (HTTP).
 * Processes pipelining (|) joining outputs with inputs (done in
 an autonomous way in this case)
