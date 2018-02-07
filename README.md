@@ -72,7 +72,9 @@ whatever X directory.
 2. Follow the SyntaxNet installation instructions detailed 
 [here](https://github.com/tensorflow/models/tree/master/research/syntaxnet#installation) 
 3. There should be some directory structure like this: 
-`X/models/research/syntaxnet/syntaxnet`.
+`X/models/research/syntaxnet/syntaxnet`. If you have problems 
+with the created pip installation, you can re-try the final phase doing 
+`sudo -H pip install --ignore-installed --upgrade /path/to/binary.whl`
 4. Clone this very repository over X directory.
 5. There should be some directory structure like this:
 `X/concha/concha` and you are done.
@@ -86,7 +88,7 @@ at [this repo](https://github.com/mldbai/tensorflow-models/tree/master/syntaxnet
 * Laguage models located at `concha/lang_models` are referenced 
 in the SyntaxNet [documentation](https://github.com/tensorflow/models/blob/master/research/syntaxnet/g3doc/universal.md), 
 but they claim you must download them. Given they are exposed under 
-the same Syntaxnet License, I've included them here for your convenience. 
+the same Syntaxnet Apache 2.0 License, I've included them here for your convenience. 
 
 ## Execution
 TBD curl examples
