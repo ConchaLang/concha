@@ -91,7 +91,8 @@ but they claim you must download them. Given they are exposed under
 the same Syntaxnet Apache 2.0 License, I've included them here for your convenience. 
 
 ## Execution
-TBD curl examples
+Follow the [Jupyter notebook](https://github.com/ConchaLang/concha/blob/master/notebooks/concha_tutorial.ipynb) 
+tutorial in your own cloned repository.
 
 ## Final goals
 When we, humans, teach each other (and I'm not talking about 
