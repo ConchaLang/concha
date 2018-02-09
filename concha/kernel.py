@@ -81,9 +81,25 @@ def compiler(source, trick_idx, tricks):
                 context.update({'r': {'body': json.loads(response.text)}})
             else:
                 context.update({'r': {'body': ''}})
+        elif method == 'PUT':
+            uri = trick['when']['uri'].format_map(context)
+            response = requests.put(url=uri, json=trick['when']['body'])
+            r_status = str(response.status_code)
+            if 'json' in response.headers['content-type']:
+                context.update({'r': {'body': json.loads(response.text)}})
+            else:
+                context.update({'r': {'body': ''}})
         elif method == 'GET':
             uri = trick['when']['uri'].format_map(context)
             response = requests.get(url=uri)
+            r_status = str(response.status_code)
+            if 'json' in response.headers['content-type']:
+                context.update({'r': {'body': json.loads(response.text)}})
+            else:
+                context.update({'r': {'body': ''}})
+        elif method == 'DELETE':
+            uri = trick['when']['uri'].format_map(context)  # TODO protect
+            response = requests.delete(url=uri)
             r_status = str(response.status_code)
             if 'json' in response.headers['content-type']:
                 context.update({'r': {'body': json.loads(response.text)}})
@@ -118,7 +134,7 @@ def compiler(source, trick_idx, tricks):
                     status='501'
                 )
         else:
-            r_status = '501'  # TODO do other methods
+            r_status = '501'  # Unknown method
     else:  # No 'when' in trick means "do the 'then' part"
         r_status = '200'
     if r_status in trick['then']:
