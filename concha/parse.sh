@@ -18,7 +18,7 @@
 #  https://github.com/tensorflow/models/blob/master/syntaxnet/universal.md
 #
 
-ROOT_DIR=../../models/research/syntaxnet
+ROOT_DIR=${ROOT_DIR:=../../models/research/syntaxnet}
 PARSER_EVAL=$ROOT_DIR/bazel-bin/syntaxnet/parser_eval
 CONTEXT=./context.pbtxt
 if [[ "$1" == "--conll" ]]; then

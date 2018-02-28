@@ -16,11 +16,10 @@
 __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
-    'TrickError', 'append_trick', 'expand_trick', 'match_tricks', 'default_domain', 'error_domain'
+    'TrickError', 'append_trick', 'match_tricks', 'default_domain', 'error_domain', 'validate_trick'
 ]
 
-import json
-from connl_tree import text_parse
+from syntax_tree import SyntaxTree
 
 
 class TrickError(Exception):
@@ -48,41 +47,16 @@ def append_trick(trick, trick_domain=default_domain):
     trick_domain.append(trick)
 
 
-def expand_trick(trick, doc):
-    """Substitute the 'then' part of a trick according to a document."""
-    context = {'d': doc}
-    status_code = None
-    if 'when' in trick:
-        if trick['when']['method'] == 'POST':
-            uri = trick['when']['uri'].format_map(context)
-            response = requests.post(url=uri, json=trick['when']['body'])
-            status_code = '{}'.format(response.status_code)
-            context.update({'r': {'body': json.loads(response.text)}})
-        elif trick['when']['method'] == 'GET':
-            uri = trick['when']['uri'].format_map(context)
-            response = requests.get(url=uri)
-            status_code = '{}'.format(response.status_code)
-            context.update({'r': {'body': json.loads(response.text)}})
-        elif trick['when']['method'] == 'TREAT':
-            uri = trick['when']['uri'].format_map(context)
-            doc = text_parse(uri)
-            link(doc, tricks)  # TODO *****************
-        else:
-            status_code = '400'  # TODO do other methods
-    else:
-        status_code = '200'
-    if status_code in trick['then']:
-        then = trick['then'][status_code]
-        result = then.format_map(context)
-        return result
-    else:
-        return 'Unknown answer'
-
-
-def match_tricks(tree, trick_domain=default_domain):
+def match_tricks(tree: SyntaxTree, trick_domain=default_domain):
     """Identify th eindexes of which tricks matches with provided CoNNL tree document."""
     candidates = []
     for i, trick in enumerate(trick_domain):
         if tree.matches(trick['given']):
             candidates.append(i)
     return candidates
+
+
+def validate_trick(trick):
+    """Verify if when and then parts matches with given tree branches"""
+    # TODO (beware with the response substitutions {r[...][...]})
+    return True

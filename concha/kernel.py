@@ -24,7 +24,7 @@ import requests
 from random import choice
 from collections import namedtuple
 from trick import match_tricks, error_domain
-from connl_tree import sub_tree, text_parse, ConnlTree
+from syntax_tree import sub_tree, SyntaxTree
 
 Artifact = namedtuple('Artifact', ['doc', 'used_tricks', 'status'])
 
@@ -61,7 +61,7 @@ def linker(source, tricks):
         for trick in error_domain:
             artifacts.append(compiler(source, trick, error_domain))
     else:  # Fallback in English
-        artifacts.append(Artifact(doc={'ROOT': {'FORM': 'NoTrick'}}, used_tricks=[], status='600'))  # Not a HHTP code
+        artifacts.append(Artifact(doc={'root': {'form': 'NoTrick'}}, used_tricks=[], status='600'))  # Not a HHTP code
     return resolve_artifact(artifacts)
 
 
@@ -108,7 +108,8 @@ def compiler(source, trick_idx, tricks):
         elif method == 'TREAT':
             source_branch = sub_tree(context, trick['when']['uri'])
             sub_target = '{{{}}}'.format(source_branch.key)
-            sub_doc = text_parse(sub_target.format_map(source_branch.parent))
+#            sub_doc = text_parse(sub_target.format_map(source_branch.parent))
+            sub_doc = SyntaxTree.new_from_text(sub_target.format_map(source_branch.parent))
             sub_artifact = linker(sub_doc, tricks)  # First pass, only the sub_doc.
             r_status = sub_artifact.status
             if r_status in trick['then']:
@@ -139,7 +140,7 @@ def compiler(source, trick_idx, tricks):
         r_status = '200'
     if r_status in trick['then']:
         then = trick['then'][r_status]
-        r_doc = text_parse(then.format_map(context))
+        r_doc = SyntaxTree.new_from_text(then.format_map(context))
     else:
         r_status = '501'
     return Artifact(doc=r_doc, used_tricks=[trick_idx], status=r_status)

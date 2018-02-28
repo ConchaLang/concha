@@ -18,9 +18,9 @@ __version__ = '1.0'
 
 import os
 import datetime
-from connl_tree import text_parse, ConnlTree
-from trick import append_trick
-from kernel import linker, Artifact
+from syntax_tree import SyntaxTree
+from trick import append_trick, validate_trick
+from kernel import linker
 from flask import Flask, request, jsonify, abort
 
 # This is because of the annoying warnings of the standard CPU TF distribution
@@ -39,10 +39,13 @@ def tricks_methods(id_=None):
         if request.method == 'POST':
             if not request.json:
                 abort(400)
-            id_ = len(tricks)
-            append_trick(request.json, tricks)
-            response = jsonify({"id": id_, "message": "trick {} created Ok".format(id_)})
-            response.status_code = 201
+            if validate_trick(request.json):
+                id_ = len(tricks)
+                append_trick(request.json, tricks)
+                response = jsonify({"id": id_, "message": "trick {} created Ok".format(id_)})
+                response.status_code = 201
+            else:
+                abort(400)
         elif request.method == 'GET':
             response = jsonify(tricks)
         else:
@@ -70,7 +73,7 @@ def documents_analyze_syntax():
     """Return just a text parsing. No document handling."""
     if not request.json:
         abort(400)
-    return jsonify(text_parse(request.json['text']))
+    return jsonify(SyntaxTree.new_from_text(request.json['text']))
 
 
 @app.route('/v1/documents', methods=['POST', 'GET'])
@@ -85,11 +88,11 @@ def documents_methods():
             'date': str(datetime.datetime.now()).split('.')[0],
             'text': request.json['text']
         })
-        doc = text_parse(request.json['text'])
+        doc = SyntaxTree.new_from_text(request.json['text'])
         artifact = linker(doc, tricks)
         response = jsonify({
             'id': id_,
-            'answer_text': '{ROOT}'.format_map(artifact.doc),  # TODO error handling
+            'answer_text': '{root}'.format_map(artifact.doc),  # TODO error handling
             'request': doc,
             'tricks': artifact.used_tricks
         })
@@ -103,4 +106,4 @@ def documents_methods():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000, host='0.0.0.0')

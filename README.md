@@ -42,7 +42,7 @@ or intermediate tricks output.
 
 Current extra-bonusses:
 * There's a Servers mock to play with as an external orld playground
-* It was meant to be _Spanish only_, but... hat the heck! it speacks 
+* It was meant to be _Spanish only_, but... what the heck! it speaks 
 40 more languages as well, English included (you have to download the
 proper model for the _SyntaxNet Universal Parser_).
 
