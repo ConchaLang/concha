@@ -24,9 +24,9 @@ import requests
 from random import choice
 from collections import namedtuple
 from trick import match_tricks, error_domain
-from syntax_tree import sub_tree, SyntaxTree
+from syntax_tree import SyntaxTree
 
-Artifact = namedtuple('Artifact', ['doc', 'used_tricks', 'status'])
+Artifact = namedtuple('Artifact', ['tree', 'used_tricks', 'status'])
 
 
 def resolve_artifact(artifacts):
@@ -45,32 +45,32 @@ def resolve_artifact(artifacts):
     return choice(choices)
 
 
-def linker(source, tricks):
-    """Return an Artifact according to a given source doc and trick domain."""
+def linker(tree, tricks):
+    """Return an Artifact according to a given source tree and trick domain."""
     artifacts = []
-    candidate_tricks = match_tricks(source, tricks)
+    candidate_tricks = match_tricks(tree, tricks)
     if len(candidate_tricks) > 0:
         for trick_idx in candidate_tricks:
-            artifact = compiler(source, trick_idx, tricks)
+            artifact = compiler(tree, trick_idx, tricks)
             artifacts.append(artifact)
-            new_candidate_tricks = match_tricks(artifact.doc, tricks)
+            new_candidate_tricks = match_tricks(artifact.tree, tricks)
             original = set(candidate_tricks)
             new = set(new_candidate_tricks)
             candidate_tricks.extend(set(new.difference(original)))  # add difference to candidates
     elif len(error_domain) > 0:
         for trick in error_domain:
-            artifacts.append(compiler(source, trick, error_domain))
+            artifacts.append(compiler(tree, trick, error_domain))
     else:  # Fallback in English
-        artifacts.append(Artifact(doc={'root': {'form': 'NoTrick'}}, used_tricks=[], status='600'))  # Not a HHTP code
+        artifacts.append(Artifact(tree={'root': {'form': 'NoTrick'}}, used_tricks=[], status='600'))  # Not a HTTP code
     return resolve_artifact(artifacts)
 
 
-def compiler(source, trick_idx, tricks):
+def compiler(tree, trick_idx, tricks):
     """Return a new Artifact generated according to a single given trick."""
-    r_doc = None
+    r_tree = None
     r_status = None
     trick = tricks[trick_idx]
-    context = {'d': source}
+    context = {'d': tree}
     if 'when' in trick:
         method = trick['when']['method']
         if method == 'POST':
@@ -106,31 +106,23 @@ def compiler(source, trick_idx, tricks):
             else:
                 context.update({'r': {'body': ''}})
         elif method == 'TREAT':
-            source_branch = sub_tree(context, trick['when']['uri'])
-            sub_target = '{{{}}}'.format(source_branch.key)
-#            sub_doc = text_parse(sub_target.format_map(source_branch.parent))
-            sub_doc = SyntaxTree.new_from_text(sub_target.format_map(source_branch.parent))
-            sub_artifact = linker(sub_doc, tricks)  # First pass, only the sub_doc.
+            pointed_content = SyntaxTree.point_to_content(context, trick['when']['uri'])
+            sub_tree = SyntaxTree.new_from_tree(context, trick['when']['uri'])
+            sub_artifact = linker(sub_tree, tricks)  # First pass, only the to_tree.
             r_status = sub_artifact.status
             if r_status in trick['then']:
-                context.update({'r': sub_artifact.doc})
-                replacement_branch = sub_tree(context, trick['then'][r_status])
-                replacement_branch.tree.renumber(source_branch.tree.min() - 1)
-                threshold = source_branch.tree.max() + 1
-                delta = replacement_branch.tree.len() - source_branch.tree.len()
-                treated_source = source.deep_replacement(
-                    source_branch.parent, source_branch.key,
-                    replacement_branch.tree, delta, threshold
-                )
-                treated_artifact = linker(treated_source, tricks)  # Second pass, sub_doc response expanded in source
+                context.update({'r': sub_artifact.tree})
+                replacement_text = trick['then'][r_status].format_map(context)
+                treated_source = SyntaxTree.new_from_text(tree.to_string_replacing(pointed_content, replacement_text))
+                treated_artifact = linker(treated_source, tricks)  # Second pass, to_tree response expanded in from_tree
                 return Artifact(
-                    doc=treated_artifact.doc,
+                    tree=treated_artifact.tree,
                     used_tricks=[trick_idx] + sub_artifact.used_tricks + treated_artifact.used_tricks,
                     status=treated_artifact.status
                 )
-            else:  # reply error in sub_doc with a not implemented r_status
+            else:  # reply error in to_tree with a not implemented r_status
                 return Artifact(
-                    doc=sub_doc,
+                    tree=sub_tree,
                     used_tricks=[trick_idx] + sub_artifact.used_tricks,
                     status='501'
                 )
@@ -140,7 +132,7 @@ def compiler(source, trick_idx, tricks):
         r_status = '200'
     if r_status in trick['then']:
         then = trick['then'][r_status]
-        r_doc = SyntaxTree.new_from_text(then.format_map(context))
+        r_tree = SyntaxTree.new_from_text(then.format_map(context))
     else:
         r_status = '501'
-    return Artifact(doc=r_doc, used_tricks=[trick_idx], status=r_status)
+    return Artifact(tree=r_tree, used_tricks=[trick_idx], status=r_status)

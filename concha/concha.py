@@ -88,12 +88,12 @@ def documents_methods():
             'date': str(datetime.datetime.now()).split('.')[0],
             'text': request.json['text']
         })
-        doc = SyntaxTree.new_from_text(request.json['text'])
-        artifact = linker(doc, tricks)
+        tree = SyntaxTree.new_from_text(request.json['text'])
+        artifact = linker(tree, tricks)
         response = jsonify({
             'id': id_,
-            'answer_text': '{root}'.format_map(artifact.doc),  # TODO error handling
-            'request': doc,
+            'answer_text': '{root}'.format_map(artifact.tree),  # TODO error handling
+            'request': tree,
             'tricks': artifact.used_tricks
         })
         response.status_code = 201 if artifact.status == '200' else int(artifact.status)

@@ -16,7 +16,7 @@
 __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
-    'Branch', 'sub_tree', 'SyntaxTree',
+    'SyntaxTree',
 ]
 
 import subprocess
@@ -24,7 +24,7 @@ import requests
 import json
 from functools import reduce
 from ast import literal_eval
-from collections import namedtuple
+# from collections import namedtuple
 
 REPLS = ('.', ' . '), (',', ' , '), (';', ' ; '), (':', ' : '), \
         ('¿', ' ¿ '), ('?', ' ? '), ('¡', ' ¡ '), ('!', ' ! ')
@@ -32,18 +32,6 @@ REPL2 = ('=', '": "'), ('|', '", "')
 CONNL_KEYS = ['id', 'form', 'lemma', 'upostag', 'xpostag',
               'feats', 'head', 'deprel', 'deps', 'misc']
 SUBTREE_KEYS = ['id', 'form', 'lemma', 'upostag', 'xpostag', 'feats', 'deps', 'misc']
-
-Branch = namedtuple('Branch', ['tree', 'parent', 'key'])
-
-
-def sub_tree(tree, path):
-    """Traverse a dict tree according to format() style providing the parent and the branch key."""
-    key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
-    parent, key = (None,)*2
-    for key in key_list:
-        parent = tree
-        tree = tree[key]
-    return Branch(tree=tree, parent=parent, key=key)
 
 
 class SyntaxTree(dict):
@@ -80,25 +68,22 @@ class SyntaxTree(dict):
                 new.parse_gcnl(json.loads(response.text))
             return new
 
-    def parse_gcnl(self, gcnl_json):
-        """Update inner dict structure out of a Google Cloud Natural Language syntax format."""
-        try:
-            root = None
-            for idx, token in enumerate(gcnl_json['tokens']):  # Reverse tree dependencies adding the children field.
-                head_index = token['dependencyEdge']['headTokenIndex']
-                if 'children' not in token:  # Extra field for tree dependency reversing.
-                    token['children'] = []
-                if head_index == idx:  # Identify ROOT index.
-                    root = idx
-                elif 'children' in gcnl_json['tokens'][head_index]:  # Not in ROOT
-                        gcnl_json['tokens'][head_index]['children'].append(idx)
-                else:
-                    gcnl_json['tokens'][head_index]['children'] = [idx]
-            tree = SyntaxTree._fill_gcnl(root, gcnl_json['tokens'])  # Recursive tree completion.
-            self.update(tree)
-        except Exception:
-            raise SyntaxTree.ParseError(gcnl_json, 'The json was not Google compliant.')
-        return self
+    @staticmethod
+    def new_from_tree(tree, path=None, shell_method=False):
+        """Traverse a dict tree according to format() style providing the pointed sub tree as a new SyntaxTree."""
+        if path:
+            key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
+            for key in key_list:
+                tree = tree[key]
+        return SyntaxTree.new_from_text('{}'.format(tree), shell_method)
+
+    @staticmethod
+    def point_to_content(tree, path):
+        """Traverse a dict tree according to format() style providing the pointed content of the sub tree."""
+        key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
+        for key in key_list:
+            tree = tree[key]
+        return tree
 
     def parse_connl(self, connl_tabular_text):
         """Update inner dict structure out of a CoNNL text format."""
@@ -126,6 +111,26 @@ class SyntaxTree(dict):
             self.update(tree)
         except Exception:
             raise SyntaxTree.ParseError(connl_tabular_text, 'The text was not CoNNL compliant.')
+        return self
+
+    def parse_gcnl(self, gcnl_json):
+        """Update inner dict structure out of a Google Cloud Natural Language syntax format."""
+        try:
+            root = None
+            for idx, token in enumerate(gcnl_json['tokens']):  # Reverse tree dependencies adding the children field.
+                head_index = token['dependencyEdge']['headTokenIndex']
+                if 'children' not in token:  # Extra field for tree dependency reversing.
+                    token['children'] = []
+                if head_index == idx:  # Identify ROOT index.
+                    root = idx
+                elif 'children' in gcnl_json['tokens'][head_index]:  # Not in ROOT
+                        gcnl_json['tokens'][head_index]['children'].append(idx)
+                else:
+                    gcnl_json['tokens'][head_index]['children'] = [idx]
+            tree = SyntaxTree._fill_gcnl(root, gcnl_json['tokens'])  # Recursive tree completion.
+            self.update(tree)
+        except Exception:
+            raise SyntaxTree.ParseError(gcnl_json, 'The json was not Google compliant.')
         return self
 
     @staticmethod
@@ -159,14 +164,15 @@ class SyntaxTree(dict):
         result = SyntaxTree({label: subtree})
         return result
 
-    @staticmethod
-    def _format(tree):
-        """Return a dict with all the dependant FORMs indexed by ID."""
-        result = {int(tree['id']): tree['form']}
-        for key in tree:
-            if key not in SUBTREE_KEYS:
-                result.update(SyntaxTree._format(tree[key]))
-        return result
+    def deepcopy(self):
+        """Creates a deep copy of self."""
+        branch = SyntaxTree()
+        for key, value in self.items():
+            if isinstance(value, SyntaxTree):
+                branch.update(SyntaxTree({key: value.deepcopy()}))
+            else:
+                branch.update(SyntaxTree({key: value}))
+        return branch
 
     def len(self):
         """Count how many nodes in a SyntaxTree."""
@@ -192,54 +198,6 @@ class SyntaxTree(dict):
                 n = max(n, value.max())
         return n
 
-    def renumber(self, delta, threshold=0):
-        """           threshold = max(source[grp]) + 1
-        source  [grp] |        --> replacement
-        1,2,3,4,(5,6),7,8,9,10 --> (1,2,3)
-        0,0,0,0,(   ),1,1,1, 1 --> (4,4,4)
-                      |             |
-                      |             delta = min(source[grp]) - 1
-                      delta = len(replacement) - len(source[grp])
-        """
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                value.renumber(delta, threshold)
-            elif key == 'id':
-                id_ = int(value)
-                if id_ >= threshold:
-                    self.update({key: str(id_ + delta)})
-
-    def deepcopy(self):
-        """Creates a deep copy of self."""
-        branch = SyntaxTree()
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                branch.update(SyntaxTree({key: value.deepcopy()}))
-            else:
-                branch.update(SyntaxTree({key: value}))
-        return branch
-
-    def deep_replacement(self, source_parent, source_key, replacement, delta, threshold):
-        """Creates a deep copy of self replacing source branch."""
-        branch = SyntaxTree()
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                if self == source_parent and key == source_key:
-                    branch.update(SyntaxTree({source_key: replacement}))
-                else:
-                    branch.update(SyntaxTree({key: value.deep_replacement(
-                        source_parent, source_key, replacement, delta, threshold
-                    )}))
-            elif key == 'id':
-                id_ = int(value)
-                if id_ >= threshold:
-                    branch.update({key: str(id_ + delta)})
-                else:
-                    branch.update({key: value})
-            else:
-                branch.update({key: value})
-        return branch
-
     def matches(self, tree):
         """Return if self is equal or similar to a dict tree, which can be a pattern."""
         tree_matches = True
@@ -263,9 +221,29 @@ class SyntaxTree(dict):
                 break
         return tree_matches
 
+    def to_string_replacing(self, root_tree_content, replacement_text):
+        """Creates a text version of self replacing source branch."""
+        forms = {}
+        for tree in self.values():  # There should be only one root node
+            forms.update(SyntaxTree._indexed_forms(tree, root_tree_content, replacement_text))
+        return ' '.join(str(forms[key]) for key in sorted(forms))
+
+    @staticmethod
+    def _indexed_forms(tree_values, from_tree=None, replacement_text=''):
+        """Return a dict with all the dependant FORMs indexed by ID."""
+        index = int(tree_values['id'])
+        if tree_values == from_tree:
+            result = {index: replacement_text}
+        else:
+            result = {index: tree_values['form']}
+            for key in tree_values:
+                if key not in SUBTREE_KEYS:
+                    result.update(SyntaxTree._indexed_forms(tree_values[key], from_tree, replacement_text))
+        return result
+
     def __format__(self, format_spec=None):
         """Format a SyntaxTree object for string.format() focusing on ordered 'FORM' fields."""
-        forms = SyntaxTree._format(self)
+        forms = SyntaxTree._indexed_forms(self)
         return ' '.join(str(forms[key]) for key in sorted(forms))
 
     class ParseError(Exception):
