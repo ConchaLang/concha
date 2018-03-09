@@ -33,7 +33,12 @@ def servers_methods(server_id=None):
                 filter_value = request.args.get('filter')
                 if filter_value == 'max_load':
                     max_load_server = max(servers.values(), key=(lambda v: v['load']))
-                    response = jsonify(max_load_server)
+                    if max_load_server:
+                        response = jsonify(max_load_server)
+                    else:
+                        abort(404)
+                else:
+                    response = jsonify(servers)  # Unknown filter = gracefully no filter
             else:
                 response = jsonify(servers)
         else:
@@ -45,19 +50,19 @@ def servers_methods(server_id=None):
             if not request.json:
                 abort(400)
             servers[server_id] = {'name': server_id, 'description': request.json, 'processes': {}, 'load': 0}
-            response = jsonify({"message": "server {} created Ok".format(server_id)})
+            response = jsonify({"message": "server {} started Ok".format(server_id)})
             response.status_code = 201
         else:
             if server_id not in servers:
                 abort(404)
             if request.method == 'DELETE':
                 del servers[server_id]
-                response = jsonify({"message": "server {} deleted Ok".format(server_id)})
+                response = jsonify({"message": "server {} stopped Ok".format(server_id)})
             elif request.method == 'PUT':
                 if not request.json:
                     abort(400)
                 servers[server_id]['description'] = request.json
-                response = jsonify({"message": "server {} modified Ok".format(server_id)})
+                response = jsonify({"message": "server {} reconfigured Ok".format(server_id)})
             elif request.method == 'GET':
                 response = jsonify(servers[server_id])
             else:
@@ -83,7 +88,7 @@ def processes_methods(server_id, process_id=None):
                 abort(409)
             if not request.json:
                 abort(400)
-            server[process_id] = {'name': process_id, 'description': request.json}
+            server['processes'][process_id] = {'name': process_id, 'description': request.json}
             server['load'] += 10
             response = jsonify({"message": "process {} launched Ok in server {}".format(process_id, server_id)})
             response.status_code = 201
@@ -91,16 +96,16 @@ def processes_methods(server_id, process_id=None):
             if process_id not in server['processes']:
                 abort(404)
             if request.method == 'DELETE':
-                del servers[process_id]
-                response = jsonify({"message": "process {} stopped Ok in server {}".format(process_id, server_id)})
+                del server['processes'][process_id]
+                response = jsonify({"message": "process {} halted Ok in server {}".format(process_id, server_id)})
+                server['load'] -= 10
             elif request.method == 'PUT':
                 if not request.json:
                     abort(400)
-                server[process_id]['description'] = request.json
-                server['load'] -= 10
+                server['processes'][process_id]['description'] = request.json
                 response = jsonify({"message": "process {} modified Ok in server {}".format(process_id, server_id)})
             elif request.method == 'GET':
-                response = jsonify(server[process_id])
+                response = jsonify(server['processes'][process_id])
             else:
                 abort(400)
     return response
