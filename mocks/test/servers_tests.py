@@ -30,19 +30,34 @@ class ServersTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'{}' in rv.data)
 
-    def test_02_create_server(self):
+    def test_02_empty_filter(self):
+        rv = self.app.get('/v1/servers?filter=max_load')
+        self.assertTrue(rv.status_code == 404)
+
+    def test_03_create_server(self):
         rv = self.app.post('/v1/servers/srv001',
                            data='{"kind": "small machine"}',
                            mimetype='application/json')
         self.assertTrue(rv.status_code == 201)
         self.assertTrue(b'started Ok' in rv.data)
+        # Secondary path (conflict)
+        rv = self.app.post('/v1/servers/srv001',
+                           data='{"kind": "large machine"}',
+                           mimetype='application/json')
+        self.assertTrue(rv.status_code == 409)
+        # Secondary path (bad request)
+        rv = self.app.post('/v1/servers/srv002')
+        self.assertTrue(rv.status_code == 400)
 
-    def test_03_read_server(self):
+    def test_04_read_server(self):
         rv = self.app.get('/v1/servers/srv001')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'srv001' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.get('/v1/servers/srv002')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_04_update_server(self):
+    def test_05_update_server(self):
         rv = self.app.put('/v1/servers/srv001',
                           data='{"kind": "medium machine"}',
                           mimetype='application/json')
@@ -52,25 +67,47 @@ class ServersTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertFalse(b'small' in rv.data)
         self.assertTrue(b'medium' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.put('/v1/servers/srv002',
+                          data='{"kind": "medium machine"}',
+                          mimetype='application/json')
+        self.assertTrue(rv.status_code == 404)
+        # Secondary path (bad request)
+        rv = self.app.put('/v1/servers/srv001')
+        self.assertTrue(rv.status_code == 400)
 
-    def test_05_empty_processes(self):
+    def test_06_empty_processes(self):
         rv = self.app.get('/v1/servers/srv001/processes')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'{}' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.get('/v1/servers/srv002/processes')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_06_create_process(self):
+    def test_07_create_process(self):
         rv = self.app.post('/v1/servers/srv001/processes/proc001',
                            data='{"kind": "tetris.exe"}',
                            mimetype='application/json')
         self.assertTrue(rv.status_code == 201)
         self.assertTrue(b'launched Ok' in rv.data)
+        # Secondary path (conflict)
+        rv = self.app.post('/v1/servers/srv001/processes/proc001',
+                           data='{"kind": "pong.exe"}',
+                           mimetype='application/json')
+        self.assertTrue(rv.status_code == 409)
+        # Secondary path (bad request)
+        rv = self.app.post('/v1/servers/srv001/processes/proc002')
+        self.assertTrue(rv.status_code == 400)
 
-    def test_07_read_process(self):
+    def test_08_read_process(self):
         rv = self.app.get('/v1/servers/srv001/processes/proc001')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'tetris' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.get('/v1/servers/srv001/processes/proc002')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_08_update_process(self):
+    def test_09_update_process(self):
         rv = self.app.put('/v1/servers/srv001/processes/proc001',
                           data='{"kind": "pacman.exe"}',
                           mimetype='application/json')
@@ -80,8 +117,16 @@ class ServersTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertFalse(b'tetris' in rv.data)
         self.assertTrue(b'pacman' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.put('/v1/servers/srv001/processes/proc002',
+                          data='{"kind": "pacman.exe"}',
+                          mimetype='application/json')
+        self.assertTrue(rv.status_code == 404)
+        # Secondary path (bad request)
+        rv = self.app.put('/v1/servers/srv001/processes/proc001')
+        self.assertTrue(rv.status_code == 400)
 
-    def test_09_filter_max_load(self):
+    def test_10_filter_max_load(self):
         rv = self.app.post('/v1/servers/srv007',
                            data='{"kind": "large machine"}',
                            mimetype='application/json')
@@ -100,20 +145,33 @@ class ServersTestCase(unittest.TestCase):
         rv = self.app.get('/v1/servers?filter=max_load')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'srv007' in rv.data)
+        # Secondary path (graceful unknown filter)
+        rv = self.app.get('/v1/servers?filter=unknown_filter')
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'srv001' in rv.data)
+        self.assertTrue(b'srv007' in rv.data)
+        # Secondary path (graceful unknown query param)
+        rv = self.app.get('/v1/servers?unknown_query=unknown_filter')
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'srv001' in rv.data)
+        self.assertTrue(b'srv007' in rv.data)
 
-    def test_10_read_servers(self):
+    def test_11_read_servers(self):
         rv = self.app.get('/v1/servers')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'srv001' in rv.data)
         self.assertTrue(b'srv007' in rv.data)
 
-    def test_11_read_processes(self):
+    def test_12_read_processes(self):
         rv = self.app.get('/v1/servers/srv007/processes')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'tetris' in rv.data)
         self.assertTrue(b'pong' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.get('/v1/servers/srv002/processes')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_12_delete_process(self):
+    def test_13_delete_process(self):
         rv = self.app.delete('/v1/servers/srv007/processes/proc001')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'halted Ok' in rv.data)
@@ -121,8 +179,14 @@ class ServersTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertFalse(b'tetris' in rv.data)
         self.assertTrue(b'pong' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.delete('/v1/servers/srv007/processes/proc001')
+        self.assertTrue(rv.status_code == 404)
+        # Secondary path (not found)
+        rv = self.app.delete('/v1/servers/srv002/processes/proc001')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_13_delete_server(self):
+    def test_14_delete_server(self):
         rv = self.app.delete('/v1/servers/srv001')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'stopped Ok' in rv.data)
@@ -130,6 +194,9 @@ class ServersTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertFalse(b'srv001' in rv.data)
         self.assertTrue(b'srv007' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.delete('/v1/servers/srv001')
+        self.assertTrue(rv.status_code == 404)
 
 
 if __name__ == '__main__':

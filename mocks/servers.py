@@ -32,13 +32,13 @@ def servers_methods(server_id=None):
             if request.args:
                 filter_value = request.args.get('filter')
                 if filter_value == 'max_load':
-                    max_load_server = max(servers.values(), key=(lambda v: v['load']))
+                    max_load_server = max(servers.values(), key=(lambda v: v['load'])) if servers else None
                     if max_load_server:
                         response = jsonify(max_load_server)
                     else:
                         abort(404)
-                else:
-                    response = jsonify(servers)  # Unknown filter = gracefully no filter
+                else:  # Unknown filter or query param = gracefully no filter
+                    response = jsonify(servers)
             else:
                 response = jsonify(servers)
         else:
@@ -74,7 +74,7 @@ def servers_methods(server_id=None):
 @app.route('/v1/servers/<server_id>/processes/<process_id>', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def processes_methods(server_id, process_id=None):
     if server_id not in servers:
-        abort(400)
+        abort(404)
     server = servers[server_id]
     response = None
     if process_id is None:
