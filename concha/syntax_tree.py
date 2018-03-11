@@ -41,6 +41,8 @@ class SyntaxTree(dict):
 #        """Create a dict+list structure out of a CoNNL text format."""
 #        super(SyntaxTree, self).__init__(*arg, **kw)
 
+    locator = 'localhost:7000'
+
     @staticmethod
     def new_from_text(text, shell_method=False):
         new = SyntaxTree()
@@ -52,7 +54,7 @@ class SyntaxTree(dict):
             connl_txt = connl_bin_output.decode('utf-8')  # From Binary to String
             new.parse_connl(connl_txt)
         else:
-            uri = 'http://localhost:7000/v1/documents:analyzeSyntax'  # TODO generalize
+            uri = 'http://{}/v1/documents:analyzeSyntax'.format(SyntaxTree.locator)
             response = requests.post(
                 url=uri,
                 json={
@@ -67,15 +69,6 @@ class SyntaxTree(dict):
             if response.status_code == 200 and 'json' in response.headers['content-type']:
                 new.parse_gcnl(json.loads(response.text))
             return new
-
-    @staticmethod
-    def new_from_tree(tree, path=None, shell_method=False):
-        """Traverse a dict tree according to format() style providing the pointed sub tree as a new SyntaxTree."""
-        if path:
-            key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
-            for key in key_list:
-                tree = tree[key]
-        return SyntaxTree.new_from_text('{}'.format(tree), shell_method)
 
     @staticmethod
     def point_to_content(tree, path):

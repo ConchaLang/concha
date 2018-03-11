@@ -17,6 +17,7 @@ __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 
 import os
+import argparse
 import datetime
 from syntax_tree import SyntaxTree
 from trick import append_trick, validate_trick
@@ -106,4 +107,16 @@ def documents_methods():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    parser = argparse.ArgumentParser(
+        description='Executes HTTP service calls according to natural language tricks.')
+    parser.add_argument('-l', '--locator', type=str, default='localhost:7000',
+                        help='parsing serviceURL locator (host:port)')
+    parser.add_argument('-i', '--ip', type=str, default='0.0.0.0',
+                        help='listen to the IP address')
+    parser.add_argument('-p', '--port', type=int, default=5000,
+                        help='listen to the port number')
+    parser.add_argument('-X', '--debug', action="store_true",
+                        help='debug mode')
+    args = parser.parse_args()
+    SyntaxTree.locator = args.locator
+    app.run(host=args.ip, port=args.port, debug=args.debug)
