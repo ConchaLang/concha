@@ -18,6 +18,7 @@ __version__ = '1.0'
 
 from flask import Flask
 from flask import request, jsonify, abort
+import argparse
 
 app = Flask(__name__)
 servers = {}
@@ -112,4 +113,13 @@ def processes_methods(server_id, process_id=None):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=6000, host='0.0.0.0')
+    parser = argparse.ArgumentParser(
+        description='Exposes a HTTP fake cloud management mock service.')
+    parser.add_argument('-i', '--ip', type=str, default='0.0.0.0',
+                        help='listen to the IP address')
+    parser.add_argument('-p', '--port', type=int, default=6000,
+                        help='listen to the port number')
+    parser.add_argument('-X', '--debug', action="store_true",
+                        help='debug mode')
+    args = parser.parse_args()
+    app.run(host=args.ip, port=args.port, debug=args.debug)
