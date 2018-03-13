@@ -16,10 +16,11 @@
 __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 __all__ = [
-    'TrickError', 'append_trick', 'match_tricks', 'default_domain', 'error_domain', 'validate_trick'
+    'TrickError', 'append_trick', 'match_tricks', 'default_domain', 'error_domain', 'syntactic_trick_errors'
 ]
 
 from syntax_tree import SyntaxTree
+import re
 
 
 class TrickError(Exception):
@@ -56,7 +57,25 @@ def match_tricks(tree: SyntaxTree, trick_domain=default_domain):
     return candidates
 
 
-def validate_trick(trick):
-    """Verify if when and then parts matches with given tree branches"""
-    # TODO (beware with the response substitutions {r[...][...]})
-    return True
+def syntactic_trick_errors(trick):
+    """Verify trick structure and if 'when' and 'then' parts match in the document usage ({d[...]})"""
+    result = []
+    if 'given' in trick and 'then' in trick:
+        d = {'d': trick['given']}
+        for k, v in trick['then'].items():
+            expressions = re.findall('\{d.*?\}',v)
+            for e in expressions:
+                try:
+                    x = e.format_map(d)
+                except Exception as exception:
+                    result.append('Wrong construct in "then" part coded "{}": "{}"'.format(k, exception))
+        if 'when' in trick:
+            expressions = re.findall('\{d.*?\}',trick['when']['uri'])
+            for e in expressions:
+                try:
+                    x = e.format_map(d)
+                except Exception as exception:
+                    result.append('Wrong construct in "when" part: "{}"'.format(exception))
+    else:
+        result.append('Wrong trick construct: missing "given" or "then" part')
+    return result

@@ -20,7 +20,7 @@ import os
 import argparse
 import datetime
 from syntax_tree import SyntaxTree
-from trick import append_trick, validate_trick
+from trick import append_trick, syntactic_trick_errors
 from kernel import linker
 from flask import Flask, request, jsonify, abort
 
@@ -40,19 +40,20 @@ def tricks_methods(id_=None):
         if request.method == 'POST':
             if not request.json:
                 abort(400)
-            if validate_trick(request.json):
+            err = syntactic_trick_errors(request.json)
+            if err:
+                abort(400)
+            else:
                 id_ = len(tricks)
                 append_trick(request.json, tricks)
                 response = jsonify({"id": id_, "message": "trick {} created Ok".format(id_)})
                 response.status_code = 201
-            else:
-                abort(400)
         elif request.method == 'GET':
             response = jsonify(tricks)
         else:
             abort(400)
     else:
-        if 0 > id_ >= len(tricks):
+        if id_ < 0 or len(tricks) <= id_:
             abort(404)
         if request.method == 'DELETE':
             tricks.pop(id_)

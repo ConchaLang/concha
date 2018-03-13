@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+# Copyright 2018 Pascual de Juan All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+__author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
+__version__ = '1.0'
+
 import unittest
 import syntax_tree
 
@@ -35,15 +52,16 @@ class SyntaxTreeTest(unittest.TestCase):
             bad_tree = syntax_tree.SyntaxTree()
             bad_tree.parse_connl('1	mi	_	DET	_	Number=Sing|Per')
 
-    def test_deep_replacement(self):
-        b_tree = syntax_tree.SyntaxTree()
-        b_tree.parse_connl(b_tree_txt)
-        threshold = self.tree['root']['nsubj'].max() + 1
-        delta = b_tree['root'].len() - self.tree['root']['nsubj'].len()
-        replaced_tree = self.tree.deep_replacement(self.tree['root'], 'nsubj', b_tree['root'], delta, threshold)
-        self.assertTrue(replaced_tree['root']['nsubj']['appos']['form'] == 'Concha')
-        self.assertTrue(replaced_tree['root']['nsubj']['appos']['id'] == '3')
-        self.assertTrue(replaced_tree['root']['id'] == '5')
+
+#    def test_deep_replacement(self):
+#        b_tree = syntax_tree.SyntaxTree()
+#        b_tree.parse_connl(b_tree_txt)
+#        threshold = self.tree['root']['nsubj'].max() + 1
+#        delta = b_tree['root'].len() - self.tree['root']['nsubj'].len()
+#        replaced_tree = self.tree.deep_replacement(self.tree['root'], 'nsubj', b_tree['root'], delta, threshold)
+#        self.assertTrue(replaced_tree['root']['nsubj']['appos']['form'] == 'Concha')
+#        self.assertTrue(replaced_tree['root']['nsubj']['appos']['id'] == '3')
+#        self.assertTrue(replaced_tree['root']['id'] == '5')
 
     def test_match(self):
         self.assertTrue(self.tree.matches({'root': {'form': 'mima', 'iobj': {'form': 'me'}}}))

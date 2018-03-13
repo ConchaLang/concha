@@ -107,7 +107,7 @@ def compiler(tree, trick_idx, tricks):
                 context.update({'r': {'body': ''}})
         elif method == 'TREAT':
             pointed_content = SyntaxTree.point_to_content(context, trick['when']['uri'])
-            sub_tree = SyntaxTree.new_from_tree(context, trick['when']['uri'])
+            sub_tree = SyntaxTree.new_from_text('{}'.format(pointed_content))
             sub_artifact = linker(sub_tree, tricks)  # First pass, only the to_tree.
             r_status = sub_artifact.status
             if r_status in trick['then']:
