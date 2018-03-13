@@ -30,7 +30,7 @@ class ConchaTestCase(unittest.TestCase):
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'[]' in rv.data)
 
-    def test_02_create_tricks(self):
+    def test_02_create_trick(self):
         rv = self.app.post(
             '/v1/tricks',
             data="""{
@@ -118,9 +118,34 @@ class ConchaTestCase(unittest.TestCase):
         rv = self.app.get('/v1/tricks/1')
         self.assertTrue(rv.status_code == 404)
 
-    # No update method
+    def test_04_update_trick(self):
+        rv = self.app.put(
+            '/v1/tricks/0',
+            data="""{
+                    "given": {
+                        "root": {
+                            "form": "repite",
+                            "obj": {
+                                "form": "*algo"
+                            }
+                        }
+                    },
+                    "then": {
+                        "200": "{d[root][obj]}",
+                        "400": "No puedo repetirlo, no me has indicado qué repetir"
+                    }
+                }""",
+            mimetype='application/json')
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'modified Ok' in rv.data)
+        rv = self.app.get('/v1/tricks/0')
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'indicado' in rv.data)
+        # Secondary path (not found)
+        rv = self.app.put('/v1/tricks/1')
+        self.assertTrue(rv.status_code == 404)
 
-    def test_04_read_tricks(self):
+    def test_05_read_tricks(self):
         rv = self.app.post(
             '/v1/tricks',
             data="""{
@@ -145,7 +170,7 @@ class ConchaTestCase(unittest.TestCase):
         self.assertTrue(b'No puedo repetirlo' in rv.data)
         self.assertTrue(b'No puedo exponerlo' in rv.data)
 
-    def test_05_delete_trick(self):
+    def test_06_delete_trick(self):
         rv = self.app.delete('/v1/tricks/1')
         self.assertTrue(rv.status_code == 200)
         self.assertTrue(b'deleted Ok' in rv.data)

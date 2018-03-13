@@ -31,6 +31,18 @@ tricks = []
 documents = []
 
 
+def error_explained(code, message, status):
+    response = jsonify({
+        "error": {
+            "code": code,
+            "message": message,
+            "status": status
+        }
+    })
+    response.status_code = code
+    return response
+
+
 @app.route('/v1/tricks', methods=['POST', 'GET'])
 @app.route('/v1/tricks/<int:id_>', methods=['GET', 'PUT', 'DELETE'])
 def tricks_methods(id_=None):
@@ -42,7 +54,7 @@ def tricks_methods(id_=None):
                 abort(400)
             err = syntactic_trick_errors(request.json)
             if err:
-                abort(400)
+                return error_explained(400, str(err), 'SYNTAX_ERROR')
             else:
                 id_ = len(tricks)
                 append_trick(request.json, tricks)
@@ -61,8 +73,12 @@ def tricks_methods(id_=None):
         elif request.method == 'PUT':
             if not request.json:
                 abort(400)
-            tricks[id_] = request.json
-            response = jsonify({"message": "trick {} modified Ok".format(id_)})
+            err = syntactic_trick_errors(request.json)
+            if err:
+                return error_explained(400, str(err), 'SYNTAX_ERROR')
+            else:
+                tricks[id_] = request.json
+                response = jsonify({"message": "trick {} modified Ok".format(id_)})
         elif request.method == 'GET':
             response = jsonify(tricks[id_])
         else:
