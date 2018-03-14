@@ -21,7 +21,12 @@ from flask import request, jsonify, abort
 import argparse
 
 app = Flask(__name__)
-servers = {}
+_servers = {}
+
+
+def reset():
+    global _servers
+    _servers = {}
 
 
 @app.route('/v1/servers', methods=['GET'])
@@ -33,39 +38,39 @@ def servers_methods(server_id=None):
             if request.args:
                 filter_value = request.args.get('filter')
                 if filter_value == 'max_load':
-                    max_load_server = max(servers.values(), key=(lambda v: v['load'])) if servers else None
+                    max_load_server = max(_servers.values(), key=(lambda v: v['load'])) if _servers else None
                     if max_load_server:
                         response = jsonify(max_load_server)
                     else:
                         abort(404)
                 else:  # Unknown filter or query param = gracefully no filter
-                    response = jsonify(servers)
+                    response = jsonify(_servers)
             else:
-                response = jsonify(servers)
+                response = jsonify(_servers)
         else:
             abort(400)
     else:
         if request.method == 'POST':
-            if server_id in servers:
+            if server_id in _servers:
                 abort(409)
             if not request.json:
                 abort(400)
-            servers[server_id] = {'name': server_id, 'description': request.json, 'processes': {}, 'load': 0}
+            _servers[server_id] = {'name': server_id, 'description': request.json, 'processes': {}, 'load': 0}
             response = jsonify({"message": "server {} started Ok".format(server_id)})
             response.status_code = 201
         else:
-            if server_id not in servers:
+            if server_id not in _servers:
                 abort(404)
             if request.method == 'DELETE':
-                del servers[server_id]
+                del _servers[server_id]
                 response = jsonify({"message": "server {} stopped Ok".format(server_id)})
             elif request.method == 'PUT':
                 if not request.json:
                     abort(400)
-                servers[server_id]['description'] = request.json
+                _servers[server_id]['description'] = request.json
                 response = jsonify({"message": "server {} reconfigured Ok".format(server_id)})
             elif request.method == 'GET':
-                response = jsonify(servers[server_id])
+                response = jsonify(_servers[server_id])
             else:
                 abort(400)
     return response
@@ -74,9 +79,9 @@ def servers_methods(server_id=None):
 @app.route('/v1/servers/<server_id>/processes', methods=['GET'])
 @app.route('/v1/servers/<server_id>/processes/<process_id>', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def processes_methods(server_id, process_id=None):
-    if server_id not in servers:
+    if server_id not in _servers:
         abort(404)
-    server = servers[server_id]
+    server = _servers[server_id]
     response = None
     if process_id is None:
         if request.method == 'GET':
