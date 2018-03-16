@@ -163,6 +163,15 @@ class ServersTestCase(unittest.TestCase):
         rv = self.app.delete('/v1/servers/srv002')
         self.assertTrue(rv.status_code == 404)
 
+
+class ProcessesTestCase(unittest.TestCase):
+    def setUp(self):
+        servers.app.testing = True
+        self.app = servers.app.test_client()
+
+    def tearDown(self):
+        servers.reset()
+
     def test_empty_processes(self):
         setup_server(self.app, 'srv001', SMALL)
 
@@ -260,44 +269,6 @@ class ServersTestCase(unittest.TestCase):
 
         self.assertTrue(rv.status_code == 400)
 
-    def test_filter_max_load(self):
-        setup_server(self.app, 'srv001', SMALL)
-        setup_process(self.app, 'srv001', 'proc001', TETRIS)
-        setup_process(self.app, 'srv001', 'proc002', PONG)
-        setup_server(self.app, 'srv007', LARGE)
-        setup_process(self.app, 'srv007', 'proc001', PACMAN)
-
-        rv = self.app.get('/v1/servers?filter=max_load')
-
-        self.assertTrue(rv.status_code == 200)
-        self.assertTrue(b'srv001' in rv.data)
-
-    def test_filter_max_load_2nd_graceful_unknown_server(self):
-        setup_server(self.app, 'srv001', SMALL)
-        setup_process(self.app, 'srv001', 'proc001', TETRIS)
-        setup_process(self.app, 'srv001', 'proc002', PONG)
-        setup_server(self.app, 'srv007', LARGE)
-        setup_process(self.app, 'srv007', 'proc001', PACMAN)
-
-        rv = self.app.get('/v1/servers?filter=unknown_filter')
-
-        self.assertTrue(rv.status_code == 200)
-        self.assertTrue(b'srv001' in rv.data)
-        self.assertTrue(b'srv007' in rv.data)
-
-    def test_filter_max_load_2nd_graceful_unknown_filter(self):
-        setup_server(self.app, 'srv001', SMALL)
-        setup_process(self.app, 'srv001', 'proc001', TETRIS)
-        setup_process(self.app, 'srv001', 'proc002', PONG)
-        setup_server(self.app, 'srv007', LARGE)
-        setup_process(self.app, 'srv007', 'proc001', PACMAN)
-
-        rv = self.app.get('/v1/servers?unknown_query=unknown_filter')
-
-        self.assertTrue(rv.status_code == 200)
-        self.assertTrue(b'srv001' in rv.data)
-        self.assertTrue(b'srv007' in rv.data)
-
     def test_read_processes(self):
         setup_server(self.app, 'srv001', SMALL)
         setup_process(self.app, 'srv001', 'proc001', TETRIS)
@@ -347,6 +318,53 @@ class ServersTestCase(unittest.TestCase):
         rv = self.app.delete('/v1/servers/srv002/processes/proc001')
 
         self.assertTrue(rv.status_code == 404)
+
+
+class ProcessesFiltersTestCase(unittest.TestCase):
+    def setUp(self):
+        servers.app.testing = True
+        self.app = servers.app.test_client()
+
+    def tearDown(self):
+        servers.reset()
+
+    def test_filter_max_load(self):
+        setup_server(self.app, 'srv001', SMALL)
+        setup_process(self.app, 'srv001', 'proc001', TETRIS)
+        setup_process(self.app, 'srv001', 'proc002', PONG)
+        setup_server(self.app, 'srv007', LARGE)
+        setup_process(self.app, 'srv007', 'proc001', PACMAN)
+
+        rv = self.app.get('/v1/servers?filter=max_load')
+
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'srv001' in rv.data)
+
+    def test_filter_max_load_2nd_graceful_unknown_server(self):
+        setup_server(self.app, 'srv001', SMALL)
+        setup_process(self.app, 'srv001', 'proc001', TETRIS)
+        setup_process(self.app, 'srv001', 'proc002', PONG)
+        setup_server(self.app, 'srv007', LARGE)
+        setup_process(self.app, 'srv007', 'proc001', PACMAN)
+
+        rv = self.app.get('/v1/servers?filter=unknown_filter')
+
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'srv001' in rv.data)
+        self.assertTrue(b'srv007' in rv.data)
+
+    def test_filter_max_load_2nd_graceful_unknown_filter(self):
+        setup_server(self.app, 'srv001', SMALL)
+        setup_process(self.app, 'srv001', 'proc001', TETRIS)
+        setup_process(self.app, 'srv001', 'proc002', PONG)
+        setup_server(self.app, 'srv007', LARGE)
+        setup_process(self.app, 'srv007', 'proc001', PACMAN)
+
+        rv = self.app.get('/v1/servers?unknown_query=unknown_filter')
+
+        self.assertTrue(rv.status_code == 200)
+        self.assertTrue(b'srv001' in rv.data)
+        self.assertTrue(b'srv007' in rv.data)
 
 
 if __name__ == '__main__':
