@@ -40,7 +40,15 @@ default_domain = []
 error_domain = []
 
 
+def reset():
+    global default_domain
+    global error_domain
+    default_domain = []
+    error_domain = []
+
+
 def append_trick(trick, trick_domain=default_domain):
+    """Adds a new trick in a given domain or to the error domain if it is a error handling trick."""
     if 'when' in trick:
         if 'method' in trick['when']:
             if trick['when']['method'] == 'ERROR':
@@ -49,7 +57,7 @@ def append_trick(trick, trick_domain=default_domain):
 
 
 def match_tricks(tree: SyntaxTree, trick_domain=default_domain):
-    """Identify th eindexes of which tricks matches with provided CoNNL tree document."""
+    """Identify the indexes of which tricks matches with provided CoNNL tree document."""
     candidates = []
     for i, trick in enumerate(trick_domain):
         if tree.matches(trick['given']):

@@ -31,6 +31,13 @@ tricks = []
 documents = []
 
 
+def reset():
+    global tricks
+    global documents
+    tricks = []
+    documents = []
+
+
 def error_explained(code, message, status):
     response = jsonify({
         "error": {
@@ -41,6 +48,17 @@ def error_explained(code, message, status):
     })
     response.status_code = code
     return response
+
+
+def process_document(id_, text):
+    tree = SyntaxTree.new_from_text(text)
+    artifact = linker(tree, tricks)
+    return {
+        'id': id_,
+        'answer_text': '{root}'.format_map(artifact.tree),  # TODO error handling
+        'request': tree,
+        'tricks': artifact.used_tricks
+    }, int(artifact.status)
 
 
 @app.route('/v1/tricks', methods=['POST', 'GET'])
@@ -106,15 +124,9 @@ def documents_methods():
             'date': str(datetime.datetime.now()).split('.')[0],
             'text': request.json['text']
         })
-        tree = SyntaxTree.new_from_text(request.json['text'])
-        artifact = linker(tree, tricks)
-        response = jsonify({
-            'id': id_,
-            'answer_text': '{root}'.format_map(artifact.tree),  # TODO error handling
-            'request': tree,
-            'tricks': artifact.used_tricks
-        })
-        response.status_code = 201 if artifact.status == '200' else int(artifact.status)
+        result, status = process_document(id_, request.json['text'])
+        response = jsonify(result)
+        response.status_code = 201 if status == 200 else status
     elif request.method == 'GET':
         response = jsonify(documents)
         response.status_code = 200

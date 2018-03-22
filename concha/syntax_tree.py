@@ -68,15 +68,22 @@ class SyntaxTree(dict):
             )
             if response.status_code == 200 and 'json' in response.headers['content-type']:
                 new.parse_gcnl(json.loads(response.text))
+            else:
+                raise SyntaxTree.SyntaxError(
+                    text,
+                    'Parsing service returned the error code ({}): "{}"'.format(response.status_code, response.text))
             return new
 
     @staticmethod
     def point_to_content(tree, path):
         """Traverse a dict tree according to format() style providing the pointed content of the sub tree."""
-        key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
-        for key in key_list:
-            tree = tree[key]
-        return tree
+        try:
+            key_list = path.translate({ord(c): None for c in '{]}'}).split('[')  # format() path to list
+            for key in key_list:
+                tree = tree[key]
+            return tree
+        except Exception:
+            raise SyntaxTree.SyntaxError('{}'.format(tree), 'The path "{}" was not found.'.format(path))
 
     def parse_connl(self, connl_tabular_text):
         """Update inner dict structure out of a CoNNL text format."""
@@ -103,7 +110,7 @@ class SyntaxTree(dict):
             tree = SyntaxTree._fill_connl(root, tokens)  # Recursive tree completion.
             self.update(tree)
         except Exception:
-            raise SyntaxTree.ParseError(connl_tabular_text, 'The text was not CoNNL compliant.')
+            raise SyntaxTree.SyntaxError(connl_tabular_text, 'The text was not CoNNL compliant.')
         return self
 
     def parse_gcnl(self, gcnl_json):
@@ -123,7 +130,7 @@ class SyntaxTree(dict):
             tree = SyntaxTree._fill_gcnl(root, gcnl_json['tokens'])  # Recursive tree completion.
             self.update(tree)
         except Exception:
-            raise SyntaxTree.ParseError(gcnl_json, 'The json was not Google compliant.')
+            raise SyntaxTree.SyntaxError(gcnl_json, 'The json was not Google compliant.')
         return self
 
     @staticmethod
@@ -167,30 +174,6 @@ class SyntaxTree(dict):
                 branch.update(SyntaxTree({key: value}))
         return branch
 
-    def len(self):
-        """Count how many nodes in a SyntaxTree."""
-        count = 1
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                count += value.len()
-        return count
-
-    def min(self):
-        """Find the minimum ID a (sub)SyntaxTree."""
-        n = int(self['id'])
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                n = min(n, value.min())
-        return n
-
-    def max(self):
-        """Find the maximum ID a (sub)SyntaxTree."""
-        n = int(self['id'])
-        for key, value in self.items():
-            if isinstance(value, SyntaxTree):
-                n = max(n, value.max())
-        return n
-
     def matches(self, tree):
         """Return if self is equal or similar to a dict tree, which can be a pattern."""
         tree_matches = True
@@ -214,24 +197,25 @@ class SyntaxTree(dict):
                 break
         return tree_matches
 
-    def to_string_replacing(self, root_tree_content, replacement_text):
+    def to_string_replacing(self, replacement_subtree_reference, replacement_text):
         """Creates a text version of self replacing source branch."""
         forms = {}
         for tree in self.values():  # There should be only one root node
-            forms.update(SyntaxTree._indexed_forms(tree, root_tree_content, replacement_text))
+            forms.update(SyntaxTree._indexed_forms(tree, replacement_subtree_reference, replacement_text))
         return ' '.join(str(forms[key]) for key in sorted(forms))
 
     @staticmethod
-    def _indexed_forms(tree_values, from_tree=None, replacement_text=''):
+    def _indexed_forms(tree_values, replacement_subtree_reference=None, replacement_text=''):
         """Return a dict with all the dependant FORMs indexed by ID."""
         index = int(tree_values['id'])
-        if tree_values == from_tree:
+        if tree_values == replacement_subtree_reference:
             result = {index: replacement_text}
         else:
             result = {index: tree_values['form']}
             for key in tree_values:
                 if key not in SUBTREE_KEYS:
-                    result.update(SyntaxTree._indexed_forms(tree_values[key], from_tree, replacement_text))
+                    result.update(SyntaxTree._indexed_forms(
+                        tree_values[key], replacement_subtree_reference, replacement_text))
         return result
 
     def __format__(self, format_spec=None):
@@ -239,7 +223,7 @@ class SyntaxTree(dict):
         forms = SyntaxTree._indexed_forms(self)
         return ' '.join(str(forms[key]) for key in sorted(forms))
 
-    class ParseError(Exception):
+    class SyntaxError(Exception):
         """Exception raised for errors in the parsing.
 
         Attributes:

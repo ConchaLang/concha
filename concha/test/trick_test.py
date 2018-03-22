@@ -17,7 +17,7 @@ __author__ = 'Pascual de Juan <pascual.dejuan@gmail.com>'
 __version__ = '1.0'
 
 import unittest
-from trick import append_trick, match_tricks, default_domain  # expand_trick,
+import trick
 from syntax_tree import SyntaxTree
 
 a_tree_txt = '\
@@ -64,26 +64,26 @@ b_trick = {
 
 class TrickTest(unittest.TestCase):
 
+    def setUp(self):
+        self.domain = []
+
+    def tearDown(self):
+        trick.reset()
+
     def test_append_trick(self):
-        domain = []
-        append_trick(a_trick, domain)
-        append_trick(a_trick)
-        self.assertTrue(
-            domain[0] == default_domain[0] and
-            len(domain) == len(default_domain)
-        )
+        trick.append_trick(a_trick, self.domain)
+        trick.append_trick(a_trick)
+        self.assertTrue(self.domain[0] == trick.default_domain[0])
+        self.assertTrue(len(self.domain) == len(trick.default_domain))
 
     def test_match_tricks(self):
-        domain = []
-        append_trick(a_trick, domain)
-        append_trick(b_trick, domain)
+        trick.append_trick(a_trick, self.domain)
+        trick.append_trick(b_trick, self.domain)
         tree = SyntaxTree()
         tree.parse_connl(a_tree_txt)
-        matched_tricks = match_tricks(tree, domain)
-        self.assertTrue(
-            len(matched_tricks) == 1 and
-            domain[0]['given']['root']['iobj']['form'] == '*alguien'
-        )
+        matched_tricks = trick.match_tricks(tree, self.domain)
+        self.assertTrue(len(matched_tricks) == 1)
+        self.assertTrue(self.domain[0]['given']['root']['iobj']['form'] == '*alguien')
 
 
 if __name__ == '__main__':
